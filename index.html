@@ -3,145 +3,306 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Voice Recorder to n8n</title>
+  <title>Automation Trigger Dashboard</title>
   <style>
-    body { font-family: Arial, sans-serif; max-width: 720px; margin: 40px auto; padding: 0 16px; }
-    button { margin-right: 8px; margin-bottom: 12px; padding: 10px 16px; }
-    #status, #result { margin-top: 12px; white-space: pre-wrap; }
-    audio { display: block; margin-top: 12px; width: 100%; }
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      background: #f5f5f3;
+      color: #1a1a18;
+      min-height: 100vh;
+      display: flex;
+      align-items: flex-start;
+      justify-content: center;
+      padding: 2.5rem 1rem 3rem;
+    }
+
+    .container {
+      width: 100%;
+      max-width: 720px;
+    }
+
+    .header-label {
+      font-size: 11px;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: #888780;
+      margin-bottom: 0.5rem;
+    }
+
+    .header-title {
+      font-size: 20px;
+      font-weight: 500;
+      color: #1a1a18;
+      margin-bottom: 4px;
+    }
+
+    .header-sub {
+      font-size: 13px;
+      color: #5f5e5a;
+      margin-bottom: 1.5rem;
+    }
+
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+      gap: 12px;
+      margin-bottom: 12px;
+    }
+
+    .card {
+      background: #fff;
+      border: 0.5px solid rgba(0,0,0,0.12);
+      border-radius: 12px;
+      padding: 1.25rem;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      transition: border-color 0.2s;
+    }
+
+    .card:hover { border-color: rgba(0,0,0,0.22); }
+
+    .card-header {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .icon-wrap {
+      width: 40px;
+      height: 40px;
+      border-radius: 8px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+    }
+
+    .card-meta { flex: 1; min-width: 0; }
+    .card-name { font-size: 13px; font-weight: 500; color: #1a1a18; }
+    .card-id { font-size: 11px; color: #888780; margin-top: 1px; }
+
+    .badge {
+      font-size: 11px;
+      padding: 2px 8px;
+      border-radius: 20px;
+      font-weight: 500;
+      white-space: nowrap;
+      background: #dcfce7;
+      color: #166534;
+      display: flex;
+      align-items: center;
+      gap: 4px;
+    }
+
+    .badge::before {
+      content: '';
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      background: #22c55e;
+      display: inline-block;
+    }
+
+    .divider {
+      border: none;
+      border-top: 0.5px solid rgba(0,0,0,0.1);
+    }
+
+    .meta-rows { font-size: 12px; color: #5f5e5a; display: flex; flex-direction: column; gap: 3px; }
+    .meta-row { display: flex; justify-content: space-between; }
+    .meta-row span:last-child { color: #1a1a18; font-family: inherit; }
+    .mono { font-family: 'SF Mono', 'Fira Mono', monospace; font-size: 10.5px; }
+
+    .btn {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      padding: 9px 16px;
+      border-radius: 8px;
+      font-size: 13px;
+      font-weight: 500;
+      cursor: pointer;
+      border: none;
+      text-decoration: none;
+      transition: opacity 0.15s, transform 0.1s;
+      width: 100%;
+    }
+
+    .btn:active { transform: scale(0.98); }
+    .btn:hover { opacity: 0.88; }
+
+    .btn-blue { background: #1a56db; color: #fff; }
+    .btn-green { background: #117a45; color: #fff; }
+    .btn-outline {
+      background: #f1efe8;
+      color: #1a1a18;
+      border: 0.5px solid rgba(0,0,0,0.15);
+      flex: 1;
+      font-size: 12px;
+    }
+
+    .log-card { margin-bottom: 0; }
+
+    .log-label {
+      font-size: 11px;
+      font-weight: 500;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      color: #5f5e5a;
+    }
+
+    #log-list { display: flex; flex-direction: column; }
+
+    .log-row {
+      font-size: 12px;
+      color: #5f5e5a;
+      padding: 5px 0;
+      border-bottom: 0.5px solid rgba(0,0,0,0.08);
+    }
+
+    .log-row:last-child { border-bottom: none; }
+    .log-time { color: #b4b2a9; margin-right: 8px; }
+    .log-ok { color: #15803d; font-weight: 500; }
+
+    .action-row { display: flex; gap: 8px; }
+
+    @media (max-width: 480px) {
+      body { padding: 1.5rem 0.75rem 2rem; }
+      .action-row { flex-direction: column; }
+    }
   </style>
 </head>
 <body>
-  <h1>Voice Recorder → n8n Webhook</h1>
+  <div class="container">
 
-  <button id="startBtn">Start Recording</button>
-  <button id="stopBtn" disabled>Stop Recording</button>
-  <button id="uploadBtn" disabled>Upload to n8n</button>
+    <p class="header-label">Trigger dashboard</p>
+    <p class="header-title">Your automations</p>
+    <p class="header-sub">Open or trigger your connected services below.</p>
 
-  <audio id="player" controls></audio>
+    <div class="grid">
 
-  <div id="status"></div>
-  <div id="result"></div>
+      <!-- n8n Card -->
+      <div class="card">
+        <div class="card-header">
+          <div class="icon-wrap" style="background:#fef9c3;">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <rect x="2" y="2" width="9" height="9" rx="2" fill="#ca8a04"/>
+              <rect x="13" y="2" width="9" height="9" rx="2" fill="#ca8a04" opacity="0.6"/>
+              <rect x="2" y="13" width="9" height="9" rx="2" fill="#ca8a04" opacity="0.6"/>
+              <rect x="13" y="13" width="9" height="9" rx="2" fill="#ca8a04"/>
+            </svg>
+          </div>
+          <div class="card-meta">
+            <div class="card-name">n8n Form</div>
+            <div class="card-id">909fe89e-681f-48e6-a324</div>
+          </div>
+          <div class="badge">Active</div>
+        </div>
+
+        <hr class="divider">
+
+        <div class="meta-rows">
+          <div class="meta-row"><span>Cloud instance</span><span>cmneric27364</span></div>
+          <div class="meta-row"><span>Type</span><span>Form trigger</span></div>
+        </div>
+
+        <hr class="divider">
+
+        <a class="btn btn-blue"
+           href="https://cmneric27364.app.n8n.cloud/form/909fe89e-681f-48e6-a324-bd32d87c8fee"
+           target="_blank" rel="noopener"
+           onclick="logEntry('n8n form opened → 909fe89e…')">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="5 3 19 12 5 21 5 3"/></svg>
+          Open n8n form ↗
+        </a>
+      </div>
+
+      <!-- Sheets Card -->
+      <div class="card">
+        <div class="card-header">
+          <div class="icon-wrap" style="background:#dcfce7;">
+            <svg width="22" height="22" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+              <rect x="3" y="3" width="18" height="18" rx="2" fill="#16a34a" opacity="0.15"/>
+              <rect x="3" y="3" width="18" height="18" rx="2" stroke="#16a34a" stroke-width="1.5" fill="none"/>
+              <line x1="3" y1="8" x2="21" y2="8" stroke="#16a34a" stroke-width="1"/>
+              <line x1="3" y1="13" x2="21" y2="13" stroke="#16a34a" stroke-width="1"/>
+              <line x1="3" y1="18" x2="21" y2="18" stroke="#16a34a" stroke-width="1"/>
+              <line x1="8" y1="3" x2="8" y2="21" stroke="#16a34a" stroke-width="1"/>
+              <line x1="13" y1="3" x2="13" y2="21" stroke="#16a34a" stroke-width="1"/>
+            </svg>
+          </div>
+          <div class="card-meta">
+            <div class="card-name">Google Sheets</div>
+            <div class="card-id">Spreadsheet · Sheet 1</div>
+          </div>
+          <div class="badge">Live</div>
+        </div>
+
+        <hr class="divider">
+
+        <div class="meta-rows">
+          <div class="meta-row"><span>Sheet ID</span><span class="mono">1XylS4pp…W2Sr0</span></div>
+          <div class="meta-row"><span>Tab</span><span>gid=0 (first sheet)</span></div>
+        </div>
+
+        <hr class="divider">
+
+        <a class="btn btn-green"
+           href="https://docs.google.com/spreadsheets/d/1XylS4ppdPmNJd9IGzCQ3kdfj3fXIu5d5TeV6VHW2Sr0/edit?gid=0#gid=0"
+           target="_blank" rel="noopener"
+           onclick="logEntry('Google Sheets opened → Sheet 1')">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>
+          Open spreadsheet ↗
+        </a>
+      </div>
+
+    </div>
+
+    <!-- Log Card -->
+    <div class="card log-card">
+      <div class="log-label">Activity log</div>
+      <div id="log-list">
+        <div class="log-row" id="log-placeholder" style="color:#b4b2a9; font-style:italic;">No triggers fired yet in this session.</div>
+      </div>
+      <div class="action-row">
+        <button class="btn btn-outline" onclick="fireN8n()">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="5 3 19 12 5 21 5 3"/></svg>
+          Trigger n8n form
+        </button>
+        <button class="btn btn-outline" onclick="openSheets()">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>
+          Open Sheets
+        </button>
+      </div>
+    </div>
+
+  </div>
 
   <script>
-    const webhookUrl = "https://cmneric27364.app.n8n.cloud/webhook-test/voice_recorder";
-
-    const startBtn = document.getElementById("startBtn");
-    const stopBtn = document.getElementById("stopBtn");
-    const uploadBtn = document.getElementById("uploadBtn");
-    const player = document.getElementById("player");
-    const statusEl = document.getElementById("status");
-    const resultEl = document.getElementById("result");
-
-    let mediaRecorder = null;
-    let audioChunks = [];
-    let audioBlob = null;
-    let stream = null;
-
-    function setStatus(text) {
-      statusEl.textContent = text;
+    function logEntry(msg) {
+      var list = document.getElementById('log-list');
+      var placeholder = document.getElementById('log-placeholder');
+      if (placeholder) placeholder.remove();
+      var now = new Date().toLocaleTimeString();
+      var row = document.createElement('div');
+      row.className = 'log-row';
+      row.innerHTML = '<span class="log-time">' + now + '</span><span class="log-ok">' + msg + '</span>';
+      list.insertBefore(row, list.firstChild);
     }
 
-    startBtn.addEventListener("click", async () => {
-      try {
-        resultEl.textContent = "";
-        audioChunks = [];
-        audioBlob = null;
+    function fireN8n() {
+      logEntry('n8n form opened → 909fe89e…');
+      window.open('https://cmneric27364.app.n8n.cloud/form/909fe89e-681f-48e6-a324-bd32d87c8fee', '_blank');
+    }
 
-        stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-
-        let mimeType = "";
-        if (MediaRecorder.isTypeSupported("audio/webm")) {
-          mimeType = "audio/webm";
-        } else if (MediaRecorder.isTypeSupported("audio/mp4")) {
-          mimeType = "audio/mp4";
-        }
-
-        mediaRecorder = mimeType
-          ? new MediaRecorder(stream, { mimeType })
-          : new MediaRecorder(stream);
-
-        mediaRecorder.ondataavailable = (event) => {
-          if (event.data && event.data.size > 0) {
-            audioChunks.push(event.data);
-          }
-        };
-
-        mediaRecorder.onstop = () => {
-          const finalType = mimeType || audioChunks[0]?.type || "audio/webm";
-          const extension = finalType.includes("mp4") ? "m4a" : "webm";
-
-          audioBlob = new Blob(audioChunks, { type: finalType });
-          const audioUrl = URL.createObjectURL(audioBlob);
-          player.src = audioUrl;
-          uploadBtn.disabled = false;
-          setStatus(`Recording stopped. File ready: recording.${extension}`);
-        };
-
-        mediaRecorder.start();
-        setStatus("Recording...");
-        startBtn.disabled = true;
-        stopBtn.disabled = false;
-        uploadBtn.disabled = true;
-      } catch (error) {
-        console.error(error);
-        setStatus("Cannot access microphone: " + error.message);
-      }
-    });
-
-    stopBtn.addEventListener("click", () => {
-      if (mediaRecorder && mediaRecorder.state !== "inactive") {
-        mediaRecorder.stop();
-      }
-
-      if (stream) {
-        stream.getTracks().forEach(track => track.stop());
-      }
-
-      startBtn.disabled = false;
-      stopBtn.disabled = true;
-    });
-
-    uploadBtn.addEventListener("click", async () => {
-      if (!audioBlob) {
-        setStatus("No audio to upload.");
-        return;
-      }
-
-      try {
-        setStatus("Uploading to n8n...");
-
-        const mimeType = audioBlob.type || "audio/webm";
-        const extension = mimeType.includes("mp4") ? "m4a" : "webm";
-        const file = new File([audioBlob], `recording.${extension}`, { type: mimeType });
-
-        const formData = new FormData();
-        formData.append("audio", file);
-        formData.append("userId", "demo-user");
-        formData.append("note", "Recorded from browser");
-
-        const response = await fetch(webhookUrl, {
-          method: "POST",
-          body: formData
-        });
-
-        const contentType = response.headers.get("content-type") || "";
-        let data;
-
-        if (contentType.includes("application/json")) {
-          data = await response.json();
-          resultEl.textContent = JSON.stringify(data, null, 2);
-        } else {
-          data = await response.text();
-          resultEl.textContent = data;
-        }
-
-        setStatus(`Upload complete. HTTP ${response.status}`);
-      } catch (error) {
-        console.error(error);
-        setStatus("Upload failed: " + error.message);
-      }
-    });
+    function openSheets() {
+      logEntry('Google Sheets opened → Sheet 1');
+      window.open('https://docs.google.com/spreadsheets/d/1XylS4ppdPmNJd9IGzCQ3kdfj3fXIu5d5TeV6VHW2Sr0/edit?gid=0#gid=0', '_blank');
+    }
   </script>
 </body>
 </html>
